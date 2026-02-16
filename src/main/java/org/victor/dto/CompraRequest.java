@@ -32,5 +32,7 @@ public record CompraRequest(
         @NotNull(message = "O ano é obrigatório")
         Integer anoFatura,
 
-        Long parceiroId
+        Long parceiroId,
+
+        Integer totalParcelas
 ) { }

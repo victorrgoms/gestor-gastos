@@ -52,9 +52,6 @@ public class Cartao {
         this.limite = limite;
     }
 
-    public Pessoa getDono() {
-        return dono;
-    }
 
     public int getDiaVencimento() {
         return diaVencimento;
@@ -66,5 +63,13 @@ public class Cartao {
 
     public void setId(@NotNull(message = "O id do cartão é obrigatório") Long id) {
         this.id = id;
+    }
+
+    public Pessoa getDono() {
+        return dono;
+    }
+
+    public void setDono(Pessoa dono) {
+        this.dono = dono;
     }
 }

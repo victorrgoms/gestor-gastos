@@ -17,6 +17,8 @@ public class Compra {
     private LocalDate data;
     private int mesFatura;
     private int anoFatura;
+    private Integer parcelaAtual;
+    private Integer totalParcelas;
 
     @ManyToOne
     private Pessoa parceiro;
@@ -59,21 +61,8 @@ public class Compra {
         this.descricao = descricao;
     }
 
-    public BigDecimal getValor() {
-        return valor;
-    }
 
-    public LocalDate getData() {
-        return data;
-    }
 
-    public Cartao getCartao() {
-        return cartao;
-    }
-
-    public Pessoa getComprador() {
-        return comprador;
-    }
 
     @Override
     public String toString() {
@@ -103,5 +92,53 @@ public class Compra {
 
     public void setParceiro(Pessoa parceiro) {
         this.parceiro = parceiro;
+    }
+
+    public Integer getParcelaAtual() {
+        return parcelaAtual;
+    }
+
+    public void setParcelaAtual(Integer parcelaAtual) {
+        this.parcelaAtual = parcelaAtual;
+    }
+
+    public Integer getTotalParcelas() {
+        return totalParcelas;
+    }
+
+    public void setTotalParcelas(Integer totalParcelas) {
+        this.totalParcelas = totalParcelas;
+    }
+
+    public BigDecimal getValor() {
+        return valor;
+    }
+
+    public void setValor(BigDecimal valor) {
+        this.valor = valor;
+    }
+
+    public LocalDate getData() {
+        return data;
+    }
+
+    public void setData(LocalDate data) {
+        this.data = data;
+    }
+
+    public Cartao getCartao() {
+        return cartao;
+    }
+
+    public void setCartao(Cartao cartao) {
+        this.cartao = cartao;
+    }
+
+    public Pessoa getComprador() {
+        return comprador;
+    }
+
+    public void setComprador(Pessoa comprador) {
+        this.comprador = comprador;
     }
 }

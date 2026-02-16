@@ -17,7 +17,7 @@ public record CartaoRequest(
 
         @NotNull(message = "O dia é obrigatório")
         @Positive(message = "O valor deve ser positivo")
-        int diaVencimento,
+        Integer diaVencimento,
 
         @NotNull(message = "O donoId é obrigatório")
         Long donoId

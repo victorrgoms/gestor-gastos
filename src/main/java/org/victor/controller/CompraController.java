@@ -2,6 +2,7 @@ package org.victor.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.victor.dto.ResumoDTO;
 import org.victor.model.Compra;
 import org.victor.dto.CompraRequest;
 import org.victor.service.CompraService;
@@ -18,13 +19,24 @@ public class CompraController {
     }
 
     @GetMapping
-    public List<Compra> listarTodas() {
-        return gerenciador.listarTodas();
+    public List<Compra> listar(
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) {
+        return gerenciador.listarPorMes(mes, ano);
+    }
+
+    @GetMapping("/resumo")
+    public List<ResumoDTO> obterResumoFinanceiro(
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano
+    ) {
+        return gerenciador.gerarResumo(mes, ano);
     }
 
     @PostMapping
-    public Compra criarCompra(@RequestBody @Valid CompraRequest request){
-        return  gerenciador.salvarCompraViaDTO(request);
+    public List<Compra> criarCompra(@RequestBody @Valid CompraRequest request){
+        return gerenciador.salvarCompraViaDTO(request);
     }
 
     @DeleteMapping("/{id}")
@@ -33,8 +45,7 @@ public class CompraController {
     }
 
     @PutMapping("/{id}")
-    public Compra atualizarCompra(@PathVariable Long id, @RequestBody Compra compra) {
-        compra.setId(id);
-        return gerenciador.salvarCompra(compra);
+    public Compra atualizarCompra(@PathVariable Long id, @RequestBody @Valid CompraRequest request) {
+        return gerenciador.atualizarCompra(id, request);
     }
 }
