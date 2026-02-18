@@ -1,12 +1,9 @@
 package org.victor.service;
 
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.victor.dto.CartaoRequest;
-import org.victor.dto.CompraRequest;
 import org.victor.dto.ResumoCartaoDTO;
 import org.victor.model.Cartao;
-import org.victor.model.Compra;
 import org.victor.model.Pessoa;
 import org.victor.repository.CartaoRepository;
 import org.victor.repository.CompraRepository;
@@ -28,27 +25,22 @@ public class CartaoService {
         this.compraRepository = compraRepository;
     }
 
-    public Cartao salvarCartao(Cartao cartao) {
-        return cartaoRepositorio.save(cartao);
-    }
-
-    public List<Cartao> listarTodas() {
-        return cartaoRepositorio.findAll();
+    public List<Cartao> listarPorUsuario(String usuarioId) {
+        return cartaoRepositorio.findByUsuarioId(usuarioId);
     }
 
     public void deletarCartao(Long id) {
         cartaoRepositorio.deleteById(id);
     }
 
-    @Transactional
     public Cartao atualizar(Long id, CartaoRequest request) {
         Cartao cartao = cartaoRepositorio.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cartão não encontrado"));
 
         if (request.donoId() != null) {
-            Pessoa donoReal = pessoaRepositorio.findById(request.donoId())
+            Pessoa dono = pessoaRepositorio.findById(request.donoId())
                     .orElseThrow(() -> new RuntimeException("Dono não encontrado"));
-            cartao.setDono(donoReal); // Vincula o objeto completo buscado do banco
+            cartao.setDono(dono);
         }
 
         cartao.setApelido(request.apelido());
@@ -58,37 +50,32 @@ public class CartaoService {
         return cartaoRepositorio.save(cartao);
     }
 
-    public Cartao salvarCartaoViaDTO(CartaoRequest request) {
-
+    public Cartao salvarCartaoViaDTO(CartaoRequest request, String usuarioId) {
         Pessoa dono = new Pessoa();
         dono.setId(request.donoId());
 
-        Cartao novoCartao = new Cartao(
-                null, // ID é null pois é nova
-                request.apelido(),
-                request.limite(),
-                dono,
-                request.diaVencimento()
-        );
+        Cartao novoCartao = new Cartao();
+        novoCartao.setApelido(request.apelido());
+        novoCartao.setLimite(request.limite());
+        novoCartao.setDiaVencimento(request.diaVencimento());
+        novoCartao.setDono(dono);
+        novoCartao.setUsuarioId(usuarioId); // <--- Vincula ao usuário
 
-        // 3. Salvamos
         return cartaoRepositorio.save(novoCartao);
     }
 
-    public List<ResumoCartaoDTO> gerarResumoCartoes(Integer mes, Integer ano) {
-        List<Cartao> cartoes = cartaoRepositorio.findAll();
+    public List<ResumoCartaoDTO> gerarResumoCartoes(Integer mes, Integer ano, String usuarioId) {
+        // Busca apenas cartões do usuário logado
+        List<Cartao> cartoes = cartaoRepositorio.findByUsuarioId(usuarioId);
         List<ResumoCartaoDTO> resumo = new ArrayList<>();
 
         for (Cartao c : cartoes) {
-            // Soma os gastos deste cartão neste mês
-            BigDecimal gastoMes = compraRepository.somarGastosPorCartao(c.getId(), mes, ano);
+            // Soma gastos passando o usuarioId para garantir segurança
+            BigDecimal gastoMes = compraRepository.somarGastosPorCartao(c.getId(), mes, ano, usuarioId);
 
-            // Se vier null (sem compras), vira Zero
             if (gastoMes == null) gastoMes = BigDecimal.ZERO;
-
             BigDecimal disponivel = c.getLimite().subtract(gastoMes);
 
-            // Calcula porcentagem para a barra de progresso (proteção contra divisão por zero)
             double porcentagem = 0.0;
             if (c.getLimite().compareTo(BigDecimal.ZERO) > 0) {
                 porcentagem = gastoMes.divide(c.getLimite(), 4, BigDecimal.ROUND_HALF_UP).doubleValue() * 100;

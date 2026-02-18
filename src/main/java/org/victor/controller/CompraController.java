@@ -2,11 +2,10 @@ package org.victor.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.victor.dto.CompraRequest;
 import org.victor.dto.ResumoDTO;
 import org.victor.model.Compra;
-import org.victor.dto.CompraRequest;
 import org.victor.service.CompraService;
-
 import java.util.List;
 
 @RestController
@@ -21,31 +20,33 @@ public class CompraController {
     @GetMapping
     public List<Compra> listar(
             @RequestParam(required = false) Integer mes,
-            @RequestParam(required = false) Integer ano
+            @RequestParam(required = false) Integer ano,
+            @RequestHeader("X-Usuario-Id") String usuarioId
     ) {
-        return gerenciador.listarPorMes(mes, ano);
+        return gerenciador.listarPorMes(mes, ano, usuarioId);
     }
 
     @GetMapping("/resumo")
-    public List<ResumoDTO> obterResumoFinanceiro(
+    public List<ResumoDTO> resumo(
             @RequestParam(required = false) Integer mes,
-            @RequestParam(required = false) Integer ano
+            @RequestParam(required = false) Integer ano,
+            @RequestHeader("X-Usuario-Id") String usuarioId
     ) {
-        return gerenciador.gerarResumo(mes, ano);
+        return gerenciador.gerarResumo(mes, ano, usuarioId);
     }
 
     @PostMapping
-    public List<Compra> criarCompra(@RequestBody @Valid CompraRequest request){
-        return gerenciador.salvarCompraViaDTO(request);
+    public List<Compra> criar(@RequestBody @Valid CompraRequest request, @RequestHeader("X-Usuario-Id") String usuarioId) {
+        return gerenciador.salvarCompraViaDTO(request, usuarioId);
     }
 
     @DeleteMapping("/{id}")
-    public void deletarCompra(@PathVariable Long id) {
+    public void deletar(@PathVariable Long id) {
         gerenciador.deletarCompra(id);
     }
 
     @PutMapping("/{id}")
-    public Compra atualizarCompra(@PathVariable Long id, @RequestBody @Valid CompraRequest request) {
+    public Compra atualizar(@PathVariable Long id, @RequestBody @Valid CompraRequest request) {
         return gerenciador.atualizarCompra(id, request);
     }
 }

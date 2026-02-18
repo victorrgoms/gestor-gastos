@@ -1,6 +1,5 @@
 package org.victor.model;
 
-
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,31 +12,23 @@ public class Pessoa {
 
     private String nome;
 
-    //CONSTRUTOR COM PARAMETROS
-    // para chamar construtor:
-    // Pessoa victor = new Pessoa(1, "Victor")
+    @Column(name = "usuario_id")
+    private String usuarioId; // <--- NOVO CAMPO OBRIGATÓRIO
+
     public Pessoa() {}
 
-    public Pessoa(Long id, String nome) {
+    public Pessoa(Long id, String nome, String usuarioId) {
         this.id = id;
         this.nome = nome;
+        this.usuarioId = usuarioId;
     }
 
-    // GETTERS
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public String getNome() {
-        return nome;
-    }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
 
-    // SETTERS
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public void setId(@NotNull(message = "O id do comprador é obrigatório") Long id) {
-        this.id = id;
-    }
+    public String getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
 }

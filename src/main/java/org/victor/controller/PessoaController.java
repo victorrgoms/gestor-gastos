@@ -2,13 +2,9 @@ package org.victor.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import org.victor.dto.CompraRequest;
 import org.victor.dto.PessoaRequest;
-import org.victor.model.Compra;
 import org.victor.model.Pessoa;
-import org.victor.service.CompraService;
 import org.victor.service.PessoaService;
-
 import java.util.List;
 
 @RestController
@@ -21,22 +17,22 @@ public class PessoaController {
     }
 
     @GetMapping
-    public List<Pessoa> listarTodas() {
-        return gerenciador.listarTodas();
+    public List<Pessoa> listar(@RequestHeader("X-Usuario-Id") String usuarioId) {
+        return gerenciador.listarPorUsuario(usuarioId);
     }
 
     @PostMapping
-    public Pessoa criarPessoa(@RequestBody @Valid PessoaRequest request){
-        return  gerenciador.salvarPessoaViaDTO(request);
+    public Pessoa criar(@RequestBody @Valid PessoaRequest request, @RequestHeader("X-Usuario-Id") String usuarioId) {
+        return gerenciador.salvarPessoaViaDTO(request, usuarioId);
     }
 
     @DeleteMapping("/{id}")
-    public void deletarPessoa(@PathVariable Long id) {
+    public void deletar(@PathVariable Long id) {
         gerenciador.deletarPessoa(id);
     }
 
     @PutMapping("/{id}")
-    public Pessoa atualizarPessoa(@PathVariable Long id, @RequestBody Pessoa pessoa) {
+    public Pessoa atualizar(@PathVariable Long id, @RequestBody Pessoa pessoa) {
         pessoa.setId(id);
         return gerenciador.salvarPessoa(pessoa);
     }
