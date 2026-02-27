@@ -14,6 +14,7 @@ import org.victor.repository.PessoaRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class CompraService {
@@ -27,12 +28,21 @@ public class CompraService {
         this.cartaoRepository = cartaoRepository;
     }
 
+    @Transactional
     public void deletarCompra(Long id) {
-        repositorio.deleteById(id);
+        Compra c = repositorio.findById(id).orElseThrow();
+
+        // se a compra faz parte de um parcelamento, a gente apaga todas as irmas dela
+        if (c.getGrupoParcelamento() != null) {
+            List<Compra> grupo = repositorio.findByGrupoParcelamento(c.getGrupoParcelamento());
+            repositorio.deleteAll(grupo);
+        } else {
+            // se for compra normal, passa o rodo só nela
+            repositorio.delete(c);
+        }
     }
 
     public List<Compra> listarPorMes(Integer mes, Integer ano, String usuarioId) {
-        // Agora filtra também pelo ID do usuário
         return repositorio.findByMesFaturaAndAnoFaturaAndUsuarioId(mes, ano, usuarioId);
     }
 
@@ -52,20 +62,20 @@ public class CompraService {
 
         int qtdParcelas = request.totalParcelas() != null ? request.totalParcelas() : 1;
 
-        // se o front mandar que a compra ta na parcela 3, a gente começa gerar da 3 em diante
+        // ve de qual parcela a gente vai comecar a contar
         int parcelaInicial = request.parcelaAtual() != null && request.parcelaAtual() > 0 ? request.parcelaAtual() : 1;
 
-        // o front ja vai mandar o valor total mastigado
         BigDecimal valorParcela = request.valor().divide(BigDecimal.valueOf(qtdParcelas), 2, BigDecimal.ROUND_HALF_UP);
 
         List<Compra> comprasGeradas = new ArrayList<>();
-        String grupoId = java.util.UUID.randomUUID().toString(); // id unico pra amarrar as irmas
+        String grupoId = UUID.randomUUID().toString(); // id pra juntar a galera
 
         for (int i = (parcelaInicial - 1); i < qtdParcelas; i++) {
             int mesesParaAdicionar = i - (parcelaInicial - 1);
             int mesCalculado = request.mesFatura() + mesesParaAdicionar;
             int anoCalculado = request.anoFatura();
 
+            // vira o ano se passar de dezembro
             while (mesCalculado > 12) {
                 mesCalculado -= 12;
                 anoCalculado++;
@@ -90,25 +100,11 @@ public class CompraService {
             c.setParcelaAtual(i + 1);
             c.setTotalParcelas(qtdParcelas);
             c.setUsuarioId(usuarioId);
-            c.setGrupoParcelamento(grupoId);
+            c.setGrupoParcelamento(grupoId); // salva o id do grupo
 
             comprasGeradas.add(repositorio.save(c));
         }
         return comprasGeradas;
-    }
-
-    public List<ResumoDTO> gerarResumo(Integer mes, Integer ano, String usuarioId) {
-        // Busca pessoas DO USUÁRIO
-        List<Pessoa> pessoas = pessoaRepository.findByUsuarioId(usuarioId);
-        List<ResumoDTO> resumo = new ArrayList<>();
-
-        for (Pessoa p : pessoas) {
-            BigDecimal total = somarTotalPorPessoa(p, mes, ano, usuarioId);
-            if (total.compareTo(BigDecimal.ZERO) > 0) {
-                resumo.add(new ResumoDTO(p.getNome(), total));
-            }
-        }
-        return resumo;
     }
 
     @Transactional
@@ -119,14 +115,16 @@ public class CompraService {
         BigDecimal valorParcela = request.valor().divide(BigDecimal.valueOf(qtdParcelas), 2, BigDecimal.ROUND_HALF_UP);
 
         Cartao cartao = cartaoRepository.findById(request.cartaoId()).orElseThrow();
-        Pessoa comprador = new Pessoa(); comprador.setId(request.compradorId());
+        Pessoa comprador = new Pessoa();
+        comprador.setId(request.compradorId());
 
         Pessoa parceiro = null;
         if(request.parceiroId() != null && request.parceiroId() > 0) {
-            parceiro = new Pessoa(); parceiro.setId(request.parceiroId());
+            parceiro = new Pessoa();
+            parceiro.setId(request.parceiroId());
         }
 
-        // verifica se a compra faz parte de um grupo. se fizer, atualiza a familia inteira
+        // se tiver grupo a gente atualiza todas as parcelas de uma vez
         if (cOriginal.getGrupoParcelamento() != null) {
             List<Compra> grupo = repositorio.findByGrupoParcelamento(cOriginal.getGrupoParcelamento());
             for (Compra c : grupo) {
@@ -135,12 +133,11 @@ public class CompraService {
                 c.setCartao(cartao);
                 c.setComprador(comprador);
                 c.setParceiro(parceiro);
-                // a gente n mexe na data nem no mesFatura aqui pra nao cagar as faturas pra frente
+                // nao mexe na data pra nao baguncar os meses
                 repositorio.save(c);
             }
             return cOriginal;
         } else {
-            // compra normal de 1x, atualiza tudo seco
             cOriginal.setDescricao(request.descricao());
             cOriginal.setValor(valorParcela);
             cOriginal.setData(request.data());
@@ -154,8 +151,20 @@ public class CompraService {
         }
     }
 
+    public List<ResumoDTO> gerarResumo(Integer mes, Integer ano, String usuarioId) {
+        List<Pessoa> pessoas = pessoaRepository.findByUsuarioId(usuarioId);
+        List<ResumoDTO> resumo = new ArrayList<>();
+
+        for (Pessoa p : pessoas) {
+            BigDecimal total = somarTotalPorPessoa(p, mes, ano, usuarioId);
+            if (total.compareTo(BigDecimal.ZERO) > 0) {
+                resumo.add(new ResumoDTO(p.getNome(), total));
+            }
+        }
+        return resumo;
+    }
+
     private BigDecimal somarTotalPorPessoa(Pessoa pessoaAlvo, Integer mes, Integer ano, String usuarioId){
-        // Busca apenas compras desse usuário
         List<Compra> listaDeCompras = listarPorMes(mes, ano, usuarioId);
         BigDecimal total = BigDecimal.ZERO;
 
