@@ -1,7 +1,6 @@
 package org.victor.dto;
 
 import jakarta.validation.constraints.*;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,5 +33,9 @@ public record CompraRequest(
 
         Long parceiroId,
 
-        Integer totalParcelas
+        @Positive(message = "O valor deve ser positivo")
+        Integer totalParcelas,
+
+        @Positive(message = "O valor deve ser positivo")
+        Integer parcelaAtual
 ) { }

@@ -18,6 +18,8 @@ public class Compra {
     private int anoFatura;
     private Integer parcelaAtual;
     private Integer totalParcelas;
+    @Column(name = "grupo_parcelamento")
+    private String grupoParcelamento;
 
     @ManyToOne
     private Pessoa parceiro;
@@ -33,7 +35,8 @@ public class Compra {
     @Column(name = "usuario_id")
     private String usuarioId; // Identifica o dono do registro
 
-    public Compra() {}
+    public Compra() {
+    }
 
     // Getters e Setters
     public Long getId() { return id; }
@@ -71,4 +74,8 @@ public class Compra {
 
     public String getUsuarioId() { return usuarioId; }
     public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
+
+    public String getGrupoParcelamento() { return grupoParcelamento; }
+
+    public void setGrupoParcelamento(String grupoParcelamento) { this.grupoParcelamento = grupoParcelamento; }
 }

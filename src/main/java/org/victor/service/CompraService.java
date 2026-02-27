@@ -51,12 +51,19 @@ public class CompraService {
         }
 
         int qtdParcelas = request.totalParcelas() != null ? request.totalParcelas() : 1;
+
+        // se o front mandar que a compra ta na parcela 3, a gente começa gerar da 3 em diante
+        int parcelaInicial = request.parcelaAtual() != null && request.parcelaAtual() > 0 ? request.parcelaAtual() : 1;
+
+        // o front ja vai mandar o valor total mastigado
         BigDecimal valorParcela = request.valor().divide(BigDecimal.valueOf(qtdParcelas), 2, BigDecimal.ROUND_HALF_UP);
 
         List<Compra> comprasGeradas = new ArrayList<>();
+        String grupoId = java.util.UUID.randomUUID().toString(); // id unico pra amarrar as irmas
 
-        for (int i = 0; i < qtdParcelas; i++) {
-            int mesCalculado = request.mesFatura() + i;
+        for (int i = (parcelaInicial - 1); i < qtdParcelas; i++) {
+            int mesesParaAdicionar = i - (parcelaInicial - 1);
+            int mesCalculado = request.mesFatura() + mesesParaAdicionar;
             int anoCalculado = request.anoFatura();
 
             while (mesCalculado > 12) {
@@ -64,7 +71,6 @@ public class CompraService {
                 anoCalculado++;
             }
 
-            // Validação de limite segura por usuário
             BigDecimal totalGastoNoMes = repositorio.somarGastosPorCartao(cartao.getId(), mesCalculado, anoCalculado, usuarioId);
             if (totalGastoNoMes == null) totalGastoNoMes = BigDecimal.ZERO;
 
@@ -75,7 +81,7 @@ public class CompraService {
             Compra c = new Compra();
             c.setDescricao(request.descricao());
             c.setValor(valorParcela);
-            c.setData(request.data().plusMonths(i));
+            c.setData(request.data().plusMonths(mesesParaAdicionar));
             c.setMesFatura(mesCalculado);
             c.setAnoFatura(anoCalculado);
             c.setCartao(cartao);
@@ -83,7 +89,8 @@ public class CompraService {
             c.setParceiro(parceiro);
             c.setParcelaAtual(i + 1);
             c.setTotalParcelas(qtdParcelas);
-            c.setUsuarioId(usuarioId); // <--- Vincula ao usuário
+            c.setUsuarioId(usuarioId);
+            c.setGrupoParcelamento(grupoId);
 
             comprasGeradas.add(repositorio.save(c));
         }
@@ -104,14 +111,47 @@ public class CompraService {
         return resumo;
     }
 
+    @Transactional
     public Compra atualizarCompra(Long id, CompraRequest request) {
-        Compra c = repositorio.findById(id).orElseThrow();
-        c.setDescricao(request.descricao());
-        c.setValor(request.valor());
-        c.setData(request.data());
-        c.setMesFatura(request.mesFatura());
-        c.setAnoFatura(request.anoFatura());
-        return repositorio.save(c);
+        Compra cOriginal = repositorio.findById(id).orElseThrow();
+
+        int qtdParcelas = request.totalParcelas() != null ? request.totalParcelas() : 1;
+        BigDecimal valorParcela = request.valor().divide(BigDecimal.valueOf(qtdParcelas), 2, BigDecimal.ROUND_HALF_UP);
+
+        Cartao cartao = cartaoRepository.findById(request.cartaoId()).orElseThrow();
+        Pessoa comprador = new Pessoa(); comprador.setId(request.compradorId());
+
+        Pessoa parceiro = null;
+        if(request.parceiroId() != null && request.parceiroId() > 0) {
+            parceiro = new Pessoa(); parceiro.setId(request.parceiroId());
+        }
+
+        // verifica se a compra faz parte de um grupo. se fizer, atualiza a familia inteira
+        if (cOriginal.getGrupoParcelamento() != null) {
+            List<Compra> grupo = repositorio.findByGrupoParcelamento(cOriginal.getGrupoParcelamento());
+            for (Compra c : grupo) {
+                c.setDescricao(request.descricao());
+                c.setValor(valorParcela);
+                c.setCartao(cartao);
+                c.setComprador(comprador);
+                c.setParceiro(parceiro);
+                // a gente n mexe na data nem no mesFatura aqui pra nao cagar as faturas pra frente
+                repositorio.save(c);
+            }
+            return cOriginal;
+        } else {
+            // compra normal de 1x, atualiza tudo seco
+            cOriginal.setDescricao(request.descricao());
+            cOriginal.setValor(valorParcela);
+            cOriginal.setData(request.data());
+            cOriginal.setMesFatura(request.mesFatura());
+            cOriginal.setAnoFatura(request.anoFatura());
+            cOriginal.setCartao(cartao);
+            cOriginal.setComprador(comprador);
+            cOriginal.setParceiro(parceiro);
+            cOriginal.setTotalParcelas(qtdParcelas);
+            return repositorio.save(cOriginal);
+        }
     }
 
     private BigDecimal somarTotalPorPessoa(Pessoa pessoaAlvo, Integer mes, Integer ano, String usuarioId){
