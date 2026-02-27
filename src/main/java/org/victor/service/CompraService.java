@@ -108,6 +108,11 @@ public class CompraService {
     }
 
     @Transactional
+    public void deletarTodasAsCompras(String usuarioId) {
+        repositorio.deleteByUsuarioId(usuarioId);
+    }
+
+    @Transactional
     public Compra atualizarCompra(Long id, CompraRequest request) {
         Compra cOriginal = repositorio.findById(id).orElseThrow();
 

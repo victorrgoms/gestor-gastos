@@ -1,6 +1,7 @@
 package org.victor.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.victor.dto.CompraRequest;
 import org.victor.dto.ResumoDTO;
@@ -48,5 +49,11 @@ public class CompraController {
     @PutMapping("/{id}")
     public Compra atualizar(@PathVariable Long id, @RequestBody @Valid CompraRequest request) {
         return gerenciador.atualizarCompra(id, request);
+    }
+
+    @DeleteMapping("/todas")
+    public ResponseEntity<Void> deletarTodas(@RequestHeader("X-Usuario-Id") String usuarioId) {
+        gerenciador.deletarTodasAsCompras(usuarioId);
+        return ResponseEntity.noContent().build();
     }
 }
